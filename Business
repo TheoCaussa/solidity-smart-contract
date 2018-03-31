@@ -49,8 +49,6 @@ contract EIP20Interface {
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
 }
 
-
-import "./EIP20Interface.sol";
 contract LoyaltyPts is EIP20Interface {
 
     uint256 constant private MAX_UINT256 = 2**256 - 1;
