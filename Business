@@ -54,7 +54,7 @@ pragma solidity ^0.4.18;
 import "./EIP20Interface.sol";
 
 
-contract Mybusiess is EIP20Interface {
+contract LoyaltyPts is EIP20Interface {
 
     uint256 constant private MAX_UINT256 = 2**256 - 1;
     mapping (address => uint256) public balances;
@@ -67,18 +67,32 @@ contract Mybusiess is EIP20Interface {
     */
     string public name;                   //fancy name: eg Simon Bucks
     uint8 public decimals;                //How many decimals to show.
+    uint256 public ptsfactor;            //factor that gives number of points from a given price such that Points=price*ptsfactor
+    uint256 public discountfactor;        // factor that gives the discount (percent) from the number of points such that discount=Points*discountfactor 
+    address public shop;
     string public symbol;                 //An identifier: eg SBX
 
     function EIP20(
         uint256 _initialAmount,
         string _tokenName,
         uint8 _decimalUnits,
-        string _tokenSymbol
+        uint256 _ptsfactor,
+        uint256 _discountfactor,
+        string _tokenSymbol,
+        address _shop
     ) public {
-        balances[msg.sender] = _initialAmount;               // Give the creator all initial tokens00
+        balances[msg.sender] = _initialAmount;               // Give the creator all initial tokens
+        totalSupply = _initialAmount;                        // Update total supply
         name = _tokenName;                                   // Set the name for display purposes
         decimals = _decimalUnits;                            // Amount of decimals for display purposes
+        ptsfactor = _ptsfactor;
+        discountfactor= _discountfactor;
+        shop = _shop;
         symbol = _tokenSymbol;                               // Set the symbol for display purposes
+    }
+    modifier shopOnly(){
+    if (msg.sender != shop) revert();
+    _;
     }
 
     function transfer(address _to, uint256 _value) public returns (bool success) {
@@ -100,7 +114,16 @@ contract Mybusiess is EIP20Interface {
         Transfer(_from, _to, _value);
         return true;
     }
-
+    function AddPoints(address _to,uint256 _price) shopOnly() public returns (bool success) {
+        transfer(_to,  _price*ptsfactor);
+        return true;
+    }
+    function UsePoints(address _from,uint256 _nbrPoints,uint _price) shopOnly() public returns (uint256 finalprice) {
+        transferFrom(_from, shop , _nbrPoints);
+        finalprice= _price - (_price*_nbrPoints*discountfactor)/100;
+        return finalprice;
+    }
+    
     function balanceOf(address _owner) public view returns (uint256 balance) {
         return balances[_owner];
     }
@@ -114,4 +137,10 @@ contract Mybusiess is EIP20Interface {
     function allowance(address _owner, address _spender) public view returns (uint256 remaining) {
         return allowed[_owner][_spender];
     }   
+    function kill() shopOnly(){
+    delete shop;
+    selfdestruct(msg.sender);
+    }
+
+
 }
